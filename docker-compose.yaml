@@ -1,0 +1,52 @@
+services:
+    argentina_gateway:
+        build: .
+        image: payments
+        container_name: argentina_gateway
+        hostname: argentina_gateway
+        restart: always
+        env_file:
+            - .env
+        volumes:
+            - ./services/argentina_gateway:/service
+        command: python3 /service/service.py
+        ports:
+            - 5000:5000
+
+    argentina_gateway_db:
+        image: mysql
+        container_name: argentina_gateway_db
+        hostname: argentina_gateway_db
+        restart: always
+        environment:
+            - MYSQL_ROOT_PASSWORD=$DB_ARGENTINA_GATEWAY_PASS
+        ports:
+            - 3306:3306
+        volumes:
+            - ./bin/gateway.sql:/docker-entrypoint-initdb.d/init.sql
+
+    brazillian_gateway:
+        build: .
+        image: payments
+        container_name: brazillian_gateway
+        hostname: brazillian_gateway
+        restart: always
+        env_file:
+            - .env
+        volumes:
+            - ./services/brazillian_gateway:/service
+        command: python3 /service/service.py
+        ports:
+            - 5001:5000
+
+    brazillian_gateway_db:
+        image: mysql
+        container_name: brazillian_gateway_db
+        hostname: brazillian_gateway_db
+        restart: always
+        environment:
+            - MYSQL_ROOT_PASSWORD=$DB_ARGENTINA_GATEWAY_PASS
+        ports:
+            - 3307:3306
+        volumes:
+            - ./bin/gateway.sql:/docker-entrypoint-initdb.d/init.sql
