@@ -30,7 +30,8 @@ def ping_db():
 def charge():
     response, status_code = {
         "status": "SUCCESS",
-        "message": "Payment charged successfully"
+        "message": "Payment charged successfully",
+        "payment_status": ""
     }, 200
 
     create_payment_sql = ("INSERT INTO payments"
@@ -51,13 +52,15 @@ def charge():
     except mysql.connector.Error as err:
         return Response(status=500, mimetype="application/json")
     except Exception as e:
-        response.status = "ERROR"
-        response.message = "Unexpected error"
+        response["status"] = "ERROR"
+        response["message"] = "Unexpected error"
         status_code = 500
         payment_data["status"] = "cancelled"
         payment_data["cancelled_at"] = payment_data["created_at"]
 
     cursor.execute(create_payment_sql, payment_data)
+
+    response["payment_status"] = payment_data["status"]
 
     conn.commit()
     cursor.close()

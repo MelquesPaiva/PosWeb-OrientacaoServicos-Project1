@@ -30,7 +30,8 @@ def ping_db():
 def charge():
     response, status_code = {
         "status": "SUCCESS",
-        "message": "Payment charged successfully"
+        "message": "Payment charged successfully",
+        "payment": {},
     }, 200
 
     payment_data = request.get_json()
@@ -72,6 +73,10 @@ def charge():
 
     cursor.execute(create_payment_sql, payment_data)
 
+    response["payment"] = {
+        "status": payment_data["status"]
+    }
+
     conn.commit()
     cursor.close()
     conn.close()
@@ -110,6 +115,7 @@ def query():
     final_result = {
         "id": result["id"],
         "amount": result["amount"],
+        "customer_email": result["customer_email"],
         "customer_name": result["customer_name"] if result["customer_name"] is not None else "Not informed",
         "created_at": result["created_at"].strftime('%Y-%m-%d %H:%I:%S'),
         "confirmed_at": result["confirmed_at"].strftime('%Y-%m-%d %H:%I:%S') if result["confirmed_at"] is not None else "",

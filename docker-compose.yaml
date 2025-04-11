@@ -50,3 +50,29 @@ services:
             - 3307:3306
         volumes:
             - ./bin/br_gateway.sql:/docker-entrypoint-initdb.d/init.sql
+
+    payment_processor:
+        build: .
+        image: payment_processor
+        container_name: payment_processor
+        hostname: payment_processor
+        restart: always
+        env_file:
+            - .env
+        volumes:
+            - ./services/payment_processor:/service
+        command: python3 /service/service.py
+        ports:
+            - 5002:5000
+
+    payment_processor_db:
+        image: mysql
+        container_name: payment_processor_db
+        hostname: payment_processor_db
+        restart: always
+        environment:
+            - MYSQL_ROOT_PASSWORD=$DB_PAYMENT_PROCESSOR_PASS
+        ports:
+            - 3308:3306
+        volumes:
+            - ./bin/payment_processor.sql:/docker-entrypoint-initdb.d/init.sql

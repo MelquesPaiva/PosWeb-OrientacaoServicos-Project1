@@ -4,6 +4,7 @@ FROM python:alpine
 # instalando as dependencias python
 RUN pip install Flask
 RUN pip install mysql-connector-python
+RUN pip install requests
 
 # criando diretorio de trabalho onde serao guardados os arquivos dos servicos
 RUN mkdir /servico
