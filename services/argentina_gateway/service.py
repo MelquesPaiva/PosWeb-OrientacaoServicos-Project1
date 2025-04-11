@@ -1,6 +1,8 @@
 from flask import Flask, Response, request
+from datetime import datetime
 import os
 import mysql.connector
+import json
 
 ALIVE="Yes"
 DB="argentina_gateway_db"
@@ -11,15 +13,91 @@ DB_NAME="gateway"
 service = Flask("argentina_gateway")
 
 @service.get("/alive")
-def isAlive():
+def is_alive():
     return Response(ALIVE, status=200, mimetype="text/plain")
 
+def mysql_conn():
+    return mysql.connector.connect(user=DB_USER, password=DB_PASS, host=DB, database=DB_NAME)    
+
 @service.get("/ping_db")
-def pingDb():
-    cnx = mysql.connector.connect(user=DB_USER, password=DB_PASS, host=DB, database=DB_NAME)
+def ping_db():
+    cnx = mysql_conn()
     cnx.close()
 
     return Response("Success", status=200, mimetype="text/plain")
+
+@service.post("/charge")
+def charge():
+    response, status_code = {
+        "status": "SUCCESS",
+        "message": "Payment charged successfully"
+    }, 200
+
+    create_payment_sql = ("INSERT INTO payments"
+                          "(status, amount, customer_name, created_at, confirmed_at, cancelled_at) "
+                          "VALUES (%(status)s, %(amount)s, %(customer_name)s, %(created_at)s, %(confirmed_at)s, %(cancelled_at)s)")
+    payment_data = request.get_json()
+    conn = mysql_conn()
+    cursor = conn.cursor()
+    payment_data["created_at"] = datetime.today()
+    payment_data["confirmed_at"] = None
+    payment_data["cancelled_at"] = None
+
+    try:
+        payment_data["status"] = "pending"
+        if payment_data["auto_capture"] == True:
+            payment_data["status"] = "captured"
+            payment_data["confirmed_at"] = payment_data["created_at"]
+    except Exception as e:
+        response.status = "ERROR"
+        response.message = "Unexpected error"
+        status_code = 500
+        payment_data["status"] = "cancelled"
+        payment_data["cancelled_at"] = payment_data["created_at"]
+
+    cursor.execute(create_payment_sql, payment_data)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return Response(json.dumps(response), status=status_code, mimetype="application/json")
+
+@service.get("/query")
+def query():
+    response = {
+        "status": "SUCCESS",
+        "message": "Payment recovered successfully",
+        "payment": {},
+    },
+    id = request.args.get('id')
+    if id == None or id == 0:
+        response["status"] = "ERROR"
+        response["message"] = "Inform the payment id"
+        return Response(json.dumps(response), status=400, mimetype="application/json")
+
+    conn = mysql_conn()
+    cursor = conn.cursor(dictionary=True)
+    query_sql = "SELECT * FROM payments WHERE id = %s"
+    result = {}
+    try:
+        cursor.execute(query_sql, (id,))
+        result = cursor.fetchone()
+    except mysql.connector.Error as err:
+        return Response(status=500, mimetype="application/json")
+    finally:
+        cursor.close()
+        conn.close()
+
+    final_result = {
+        "id": result["id"],
+        "amount": result["amount"],
+        "customer_name": result["customer_name"] if result["customer_name"] is not None else "Not informed",
+        "created_at": result["created_at"].strftime('%Y-%m-%d %H:%I:%S'),
+        "confirmed_at": result["confirmed_at"].strftime('%Y-%m-%d %H:%I:%S') if result["confirmed_at"] is not None else "",
+        "cancelled_at": result["cancelled_at"].strftime('%Y-%m-%d %H:%I:%S') if result["cancelled_at"] is not None else "",
+    }
+
+    return Response(json.dumps(final_result), status=200, mimetype="application/json")
 
 if __name__ == "__main__":
     service.run(host="0.0.0.0", debug=True)
