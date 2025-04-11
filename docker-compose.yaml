@@ -23,7 +23,7 @@ services:
         ports:
             - 3306:3306
         volumes:
-            - ./bin/gateway.sql:/docker-entrypoint-initdb.d/init.sql
+            - ./bin/arg_gateway.sql:/docker-entrypoint-initdb.d/init.sql
 
     brazillian_gateway:
         build: .
@@ -49,4 +49,4 @@ services:
         ports:
             - 3307:3306
         volumes:
-            - ./bin/gateway.sql:/docker-entrypoint-initdb.d/init.sql
+            - ./bin/br_gateway.sql:/docker-entrypoint-initdb.d/init.sql

@@ -46,8 +46,10 @@ def charge():
     try:
         payment_data["status"] = "pending"
         if payment_data["auto_capture"] == True:
-            payment_data["status"] = "captured"
+            payment_data["status"] = "confirmed"
             payment_data["confirmed_at"] = payment_data["created_at"]
+    except mysql.connector.Error as err:
+        return Response(status=500, mimetype="application/json")
     except Exception as e:
         response.status = "ERROR"
         response.message = "Unexpected error"
@@ -77,7 +79,7 @@ def query():
 
     conn = mysql_conn()
     cursor = conn.cursor(dictionary=True)
-    query_sql = "SELECT * FROM payments WHERE id = %s"
+    query_sql = "SELECT id, amount, customer_name, created_at, confirmed_at, cancelled_at FROM payments WHERE id = %s"
     result = {}
     try:
         cursor.execute(query_sql, (id,))
