@@ -4,7 +4,7 @@ from brazil import charge_payment as brazil_charge_payment
 from argentina import charge_payment as argentina_charge_payment
 from validate_request import validate_request
 import json
-from db.db import create_payment
+from db.payment import create_payment
 
 ALIVE="Yes"
 
@@ -23,6 +23,8 @@ def charge():
     }, 200
 
     payment_data = request.get_json()
+    if "auto_capture" not in payment_data:
+        payment_data["auto_capture"] = False
 
     valid, message = validate_request(payment_data=payment_data)
     if valid is False:
